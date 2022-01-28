@@ -279,7 +279,7 @@ class QuestionCreator:
         self.file = file
         try:
             questions = inout.read_gift(file)
-        except ValueError as e:
+        except (ValueError, FileNotFoundError) as e:
             showerror(title="Error", message=f"Could not open file:\n\n{e}")
             # set window to be focused so key binds will work again
             self.window.focus_force()
