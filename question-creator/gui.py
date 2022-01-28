@@ -230,6 +230,14 @@ class QuestionCreator:
         yes = askyesno(title="Confirmation", message="Are you sure you want to remove the current question?")
         if yes:
             self.questions.pop(self.cqi)
+            if not self.questions:
+                # if the last question was removed, add a new empty one, so we always
+                # have one active question to avoid running out of index bounds
+                self.questions.append(QuestionCreator.create_new_question())
+            elif self.cqi > len(self.questions) - 1:
+                # if the question at the end of the list was removed, reduce the
+                # current question index by 1 to avoid running out of index bounds
+                self.cqi -= 1
             self._reload()
     
     def _open_file(self, file=None):
