@@ -247,17 +247,18 @@ class QuestionCreator:
             return
         self.file = file
         try:
-            self.questions = inout.read_gift(file)
+            questions = inout.read_gift(file)
         except ValueError as e:
             showerror(title="Error", message=f"Could not open file:\n\n{e}")
             # set window to be focused so key binds will work again
             self.window.focus_force()
         else:
-            if not self.questions:
+            if not questions:
                 showerror(title="Error", message=f"The requested file does not contain any questions.")
                 # set window to be focused so key binds will work again
                 self.window.focus_force()
             else:
+                self.questions = questions
                 self.window.title(f"QuestionCreator - {file}")
                 self.cqi = 0
                 self._reload()
