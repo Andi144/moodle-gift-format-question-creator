@@ -8,6 +8,51 @@ import inout
 from data import Answer, Question, Category
 
 
+class QuestionFrame(ttk.Frame):
+    
+    def __init__(self, master, question: Question, **kwargs):
+        super().__init__(master, **kwargs)
+        self.question = question
+        # GUI setup
+        self.frame = ttk.Frame(self.master)
+        self.frame.pack(fill=tk.BOTH, side=tk.TOP, expand=True)
+        inner_frame = ttk.Frame(self.frame)
+        inner_frame.pack(side=tk.LEFT)
+        self.id_label = ttk.Label(inner_frame)
+        self.id_label.pack(side=tk.TOP)
+        # TODO: question title entry
+        # mode GUI elements
+        label = ttk.Label(inner_frame, text="Mode:")
+        label.pack(side=tk.TOP)
+        # TODO: rename GUI elements (e.g., combobox -> mode_combobox)
+        self.combobox = ttk.Combobox(inner_frame, values=Question.MODES, state="readonly", width=6)
+        self.combobox.set(self.question.mode)
+        self.combobox.pack(side=tk.TOP)
+        # category GUI elements
+        label = ttk.Label(inner_frame, text="Category:")
+        label.pack(side=tk.TOP)
+        self.entry = ttk.Entry(inner_frame, width=20)
+        self.entry.insert(0, "" if self.question.category is None else self.question.category.name)
+        self.entry.pack(side=tk.TOP)
+        # textbox for main question text
+        self.textbox = ScrolledText(self.frame, width=100, height=10)
+        self.textbox.insert("1.0", self.question.text)
+        self.textbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+    
+    def set_question(self, question: Question):
+        self.question = question
+        self.entry.delete(0, tk.END)
+        self.entry.insert(0, "" if question.category is None else question.category.name)
+        self.combobox.set(question.mode)
+        self.textbox.replace("1.0", tk.END, question.text)
+    
+    def save_changes(self):
+        self.question.mode = self.combobox.get()
+        category_name = self.entry.get()
+        self.question.category = None if not category_name.strip() else Category(category_name)
+        self.question.text = self.textbox.get("1.0", tk.END)[:-1]  # last char = \n
+
+
 class AnswerFrame(ttk.Frame):
     
     def __init__(self, master: "AnswersFrame", answer: Answer, index: int, **kwargs):
@@ -116,16 +161,48 @@ class QuestionCreator:
         
         if file is not None:
             self._open_file(file)
+
+    def _init_setup(self):
+        # buttons for opening/storing questions
+        button_frame = ttk.Frame(self.window)
+        button_frame.pack(side=tk.TOP)
+        button_prev = ttk.Button(button_frame, text="Open...", width=10, command=self._open_file)
+        button_prev.pack(side=tk.LEFT)
+        button_next = ttk.Button(button_frame, text="Save as...", width=10, command=self._save_file)
+        button_next.pack(side=tk.LEFT)
+    
+        # GUI elements for the question
+        cq = self.questions[self.cqi]
+        self.question_frame = QuestionFrame(self.window, cq)
+        self.question_frame.id_label.config(text=f"Q {self.cqi + 1}/{len(self.questions)}:")
+    
+        # GUI elements for answers
+        self.answers_frame = AnswersFrame(self.window)
+        self.answers_frame.pack(fill=tk.BOTH, side=tk.TOP, expand=True)
+        for answer in cq.answers:
+            self.answers_frame.add_answer(answer)
+        # button for adding new answer
+        button_add_answer = ttk.Button(self.window, text="Add new answer", command=self.answers_frame.add_answer)
+        button_add_answer.pack(side=tk.TOP)
+    
+        # buttons for showing previous/next question + adding/removing question
+        button_frame = ttk.Frame(self.window)
+        button_frame.pack(side=tk.TOP)
+        button_prev = ttk.Button(button_frame, text="< prev", width=10, command=self._prev_question)
+        button_prev.pack(side=tk.LEFT)
+        button_add = ttk.Button(button_frame, text="Add new question", width=16, command=self._add_new_question)
+        button_add.pack(side=tk.LEFT)
+        button_rem = ttk.Button(button_frame, text="Remove question", width=16, command=self._remove_question)
+        button_rem.pack(side=tk.LEFT)
+        button_next = ttk.Button(button_frame, text="next >", width=10, command=self._next_question)
+        button_next.pack(side=tk.LEFT)
     
     def _reload(self):
         cq = self.questions[self.cqi]
         
         # question GUI elements updates
-        self.question_id_label.config(text=f"Q {self.cqi + 1}/{len(self.questions)}:")
-        self.question_entry.delete(0, tk.END)
-        self.question_entry.insert(0, "" if cq.category is None else cq.category.name)
-        self.question_combobox.set(cq.mode)
-        self.question_textbox.replace("1.0", tk.END, cq.text)
+        self.question_frame.set_question(cq)
+        self.question_frame.id_label.config(text=f"Q {self.cqi + 1}/{len(self.questions)}:")
         
         # question answers GUI elements updates
         # special handling in case the new current question has fewer or more answers
@@ -144,75 +221,28 @@ class QuestionCreator:
         for frame, answer in zip(self.answers_frame.frames, cq.answers):
             frame.set_answer(answer)
     
-    def _init_setup(self):
-        # buttons for opening/storing questions
-        button_frame = ttk.Frame(self.window)
-        button_frame.pack(side=tk.TOP)
-        button_prev = ttk.Button(button_frame, text="Open...", width=10, command=self._open_file)
-        button_prev.pack(side=tk.LEFT)
-        button_next = ttk.Button(button_frame, text="Save as...", width=10, command=self._save_file)
-        button_next.pack(side=tk.LEFT)
-        
-        if len(self.questions) > 0:
-            # question text and mode
-            cq = self.questions[self.cqi]
-            self._create_question_frame(cq)
-            
-            # answers (text and checkboxes)
-            self.answers_frame = AnswersFrame(self.window)
-            self.answers_frame.pack(fill=tk.BOTH, side=tk.TOP, expand=True)
-            for answer in cq.answers:
-                self.answers_frame.add_answer(answer)
-            
-            # button for adding new answer
-            button_add_answer = ttk.Button(self.window, text="Add new answer", command=self.answers_frame.add_answer)
-            button_add_answer.pack(side=tk.TOP)
-        
-        # buttons for showing previous/next question + adding/removing question
-        button_frame = ttk.Frame(self.window)
-        button_frame.pack(side=tk.TOP)
-        button_prev = ttk.Button(button_frame, text="< prev", width=10, command=self._prev_question)
-        button_prev.pack(side=tk.LEFT)
-        button_add = ttk.Button(button_frame, text="Add new question", width=16, command=self._add_new_question)
-        button_add.pack(side=tk.LEFT)
-        button_rem = ttk.Button(button_frame, text="Remove question", width=16, command=self._remove_question)
-        button_rem.pack(side=tk.LEFT)
-        button_next = ttk.Button(button_frame, text="next >", width=10, command=self._next_question)
-        button_next.pack(side=tk.LEFT)
-    
     def _save_changes(self, validate: bool = True):
-        cq = self.questions[self.cqi]
-        
-        # mode changes
-        mode = self.question_combobox.get()
-        if validate and mode == Question.MODE_SINGLE:
-            n_correct = len([f for f in self.answers_frame.frames if f.checkbox_var.get()])
-            if n_correct != 1:
-                showerror(title="Error: Could not save changes",
-                          message=f"Must have exactly one correct answer if question mode is '{mode}'.")
-                return False
-        cq.mode = mode
-        
-        # category changes
-        category_name = self.question_entry.get()
-        cq.category = None if not category_name.strip() else Category(category_name)
-        
-        # text changes
-        text = self.question_textbox.get("1.0", tk.END)[:-1]  # last char = \n
-        if validate and not text.strip():
-            showerror(title="Error: Could not save changes", message=f"Main question text must not be empty.")
-            return False
-        cq.text = text
-        
-        # answer changes
+        self.question_frame.save_changes()
         self.answers_frame.save_changes()
-        answers = self.answers_frame.get_answers()
+        
+        cq = self.questions[self.cqi]
+        cq.mode = self.question_frame.question.mode
+        cq.category = self.question_frame.question.category
+        cq.text = self.question_frame.question.text
+        cq.answers = self.answers_frame.get_answers()
+        
         if validate:
-            for answer in answers:
+            if cq.mode == Question.MODE_SINGLE and len([a for a in cq.answers if a.correct]) != 1:
+                showerror(title="Error: Could not save changes",
+                          message=f"Must have exactly one correct answer if question mode is '{cq.mode}'.")
+                return False
+            if not cq.text.strip():
+                showerror(title="Error: Could not save changes", message=f"Main question text must not be empty.")
+                return False
+            for answer in cq.answers:
                 if not answer.text.strip():
-                    showerror(title="Error: Could not save changes", message=f"Answer text must not be empty.")
+                    showerror(title="Error: Could not save changes", message=f"Answer texts must not be empty.")
                     return False
-        cq.answers = answers
         
         return True
     
@@ -295,32 +325,6 @@ class QuestionCreator:
             return
         self.cqi = (self.cqi + step) % len(self.questions)
         self._reload()
-    
-    def _create_question_frame(self, question: Question):
-        # TODO: create QuestionFrame class analogous to Answer(s)Frame
-        frame = ttk.Frame(self.window)
-        frame.pack(fill=tk.BOTH, side=tk.TOP, expand=True)
-        inner_frame = ttk.Frame(frame)
-        inner_frame.pack(side=tk.LEFT)
-        self.question_id_label = ttk.Label(inner_frame, text=f"Q {self.cqi + 1}/{len(self.questions)}:")
-        self.question_id_label.pack(side=tk.TOP)
-        # TODO: question title entry
-        # mode GUI elements
-        label = ttk.Label(inner_frame, text="Mode:")
-        label.pack(side=tk.TOP)
-        self.question_combobox = ttk.Combobox(inner_frame, values=Question.MODES, state="readonly", width=6)
-        self.question_combobox.set(question.mode)
-        self.question_combobox.pack(side=tk.TOP)
-        # category GUI elements
-        label = ttk.Label(inner_frame, text="Category:")
-        label.pack(side=tk.TOP)
-        self.question_entry = ttk.Entry(inner_frame, width=20)
-        self.question_entry.insert(0, "" if question.category is None else question.category.name)
-        self.question_entry.pack(side=tk.TOP)
-        # textbox for main question text
-        self.question_textbox = ScrolledText(frame, width=100, height=10)
-        self.question_textbox.insert("1.0", question.text)
-        self.question_textbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
     
     def start(self):
         self.window.mainloop()
