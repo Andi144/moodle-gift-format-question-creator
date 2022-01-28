@@ -253,9 +253,14 @@ class QuestionCreator:
             # set window to be focused so key binds will work again
             self.window.focus_force()
         else:
-            self.window.title(f"QuestionCreator - {file}")
-            self.cqi = 0
-            self._reload()
+            if not self.questions:
+                showerror(title="Error", message=f"The requested file does not contain any questions.")
+                # set window to be focused so key binds will work again
+                self.window.focus_force()
+            else:
+                self.window.title(f"QuestionCreator - {file}")
+                self.cqi = 0
+                self._reload()
     
     def _save_file(self):
         if not self.questions:
