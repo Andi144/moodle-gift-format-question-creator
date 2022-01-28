@@ -253,6 +253,7 @@ class QuestionCreator:
             if not save_successful:
                 return
         question = QuestionCreator.create_new_question(self.questions[self.cqi])
+        self.cqi += 1  # insert it after the current question, which is more logical
         self.questions.insert(self.cqi, question)
         self._reload()
     
