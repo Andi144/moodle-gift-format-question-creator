@@ -97,7 +97,7 @@ class Question:
         if len(parts) != 2:
             raise ValueError(r"more than one '}' without preceding escape character '\'" + "\n\n" +
                              f"Question text block:\n{s}")
-        modes_and_answers = [Question._extract_mode_and_answer(a) for a in parts[0].split("\n") if a]
+        modes_and_answers = [Question._extract_mode_and_answer(a) for a in parts[0].split("\n") if a.strip()]
         
         # infer question mode from answers; if the returned mode is None --> True, if the
         # returned mode is not None (e.g., %<percentage>%) --> False
