@@ -155,8 +155,8 @@ class QuestionCreator:
         self.window = tk.Tk()
         self.window.bind("<Control-o>", lambda event: self._open_file())
         self.window.bind("<Control-s>", lambda event: self._save_file())
-        self.window.bind("<Control-Left>", lambda event: self._prev_question())
-        self.window.bind("<Control-Right>", lambda event: self._next_question())
+        self.window.bind("<Alt-Left>", lambda event: self._prev_question())
+        self.window.bind("<Alt-Right>", lambda event: self._next_question())
         self._init_setup()
         
         if file is not None:
