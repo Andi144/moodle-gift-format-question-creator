@@ -14,7 +14,7 @@ class Category:
         if len(parts) != 2:
             raise ValueError(f"Category block must contain '{Category.PATTERN}' exactly once.\n\n{s}")
         name = parts[1].split("\n", maxsplit=1)[0]
-        return Category(name)
+        return Category(name.strip())
     
     def to_gift_format(self):
         return f"{Category.PATTERN}{self.name}"
@@ -111,7 +111,7 @@ class Question:
         answers = [answer for _, answer in modes_and_answers]
         
         # do not use the title if it is the same as the text
-        return Question(title="" if title == text else title, text=text, answers=answers, mode=mode)
+        return Question(title="" if title == text else title.strip(), text=text.strip(), answers=answers, mode=mode)
     
     @staticmethod
     def _extract_mode_and_answer(s):
@@ -127,7 +127,7 @@ class Question:
         # TODO: very simple heuristic
         # group(1) yields the %<percentage>% part if it is there, None otherwise
         correct = "=" in mode or (match.group(1) is not None and "-" not in mode)
-        return match.group(1), Answer(text, correct)
+        return match.group(1), Answer(text.strip(), correct)
     
     def to_gift_format(self):
         gift = f"::{self.title}::" if self.title else ""
