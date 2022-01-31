@@ -67,8 +67,8 @@ class Question:
     @staticmethod
     def from_str(s: str) -> "Question":
         # ensure that the question contains opening and closing braces
-        open_brace = re.search(r"(?<!\\){\n", s)
-        close_brace = re.search(r"(?<!\\)}\n", s)
+        open_brace = re.search(r"(?<!\\){", s)
+        close_brace = re.search(r"(?<!\\)}", s)
         if not open_brace or not close_brace:
             raise ValueError("Invalid GIFT question format (must include '{' and '}').\n\n" +
                              f"Question text block:\n{s}")
