@@ -7,6 +7,7 @@ def read_gift(file, encoding="utf8"):
     with open(file, encoding=encoding) as f:
         content = f.read()
     questions = []
+    # TODO: currently relies on blocks being separated by newline characters
     blocks = re.split(r"^\n+", content, flags=re.MULTILINE)
     category = None
     for block in blocks:
