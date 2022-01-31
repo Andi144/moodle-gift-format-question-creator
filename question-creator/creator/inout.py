@@ -15,12 +15,11 @@ def read_gift(file, encoding="utf8"):
             continue
         if Category.PATTERN in block:
             category = Category.from_str(block)
-        elif re.search(r"(?<!\\){\n", block):  # TODO: pattern currently hard-coded
+        else:
+            # assume it is a text block containing a question
             q = Question.from_str(block)
             q.category = category
             questions.append(q)
-        else:
-            raise ValueError(f"Unexpected input block:\n\n{block}")
     return questions
 
 
