@@ -12,7 +12,6 @@ class QuestionFrame(ttk.Frame):
     
     def __init__(self, master, question: Question, **kwargs):
         super().__init__(master, **kwargs)
-        self.question = question
         # GUI setup
         self.frame = ttk.Frame(self.master)
         self.frame.pack(fill=tk.BOTH, side=tk.TOP, expand=True)
@@ -26,31 +25,31 @@ class QuestionFrame(ttk.Frame):
         label.pack(side=tk.TOP)
         # TODO: rename GUI elements (e.g., combobox -> mode_combobox)
         self.combobox = ttk.Combobox(inner_frame, values=Question.MODES, state="readonly", width=6)
-        self.combobox.set(self.question.mode)
+        self.combobox.set(question.mode)
         self.combobox.pack(side=tk.TOP)
         # category GUI elements
         label = ttk.Label(inner_frame, text="Category:")
         label.pack(side=tk.TOP)
         self.entry = ttk.Entry(inner_frame, width=20)
-        self.entry.insert(0, "" if self.question.category is None else self.question.category.name)
+        self.entry.insert(0, "" if question.category is None else question.category.name)
         self.entry.pack(side=tk.TOP)
         # textbox for main question text
         self.textbox = ScrolledText(self.frame, width=100, height=10)
-        self.textbox.insert("1.0", self.question.text)
+        self.textbox.insert("1.0", question.text)
         self.textbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
     
-    def set_question(self, question: Question):
-        self.question = question
+    def set_state(self, question: Question):
         self.entry.delete(0, tk.END)
         self.entry.insert(0, "" if question.category is None else question.category.name)
         self.combobox.set(question.mode)
         self.textbox.replace("1.0", tk.END, question.text)
     
-    def save_changes(self):
-        self.question.mode = self.combobox.get()
+    def get_state(self):
+        mode = self.combobox.get()
         category_name = self.entry.get()
-        self.question.category = None if not category_name.strip() else Category(category_name)
-        self.question.text = self.textbox.get("1.0", tk.END)[:-1]  # last char = \n
+        category = None if not category_name.strip() else Category(category_name)
+        text = self.textbox.get("1.0", tk.END)[:-1]  # last char = \n
+        return mode, category, text
 
 
 class AnswerFrame(ttk.Frame):
@@ -75,14 +74,15 @@ class AnswerFrame(ttk.Frame):
         self.button = ttk.Button(frame, text="Remove", command=lambda: master.remove_answer(self.answer))
         self.button.pack(side=tk.TOP)
     
-    def set_answer(self, answer: Answer):
+    def set_state(self, answer: Answer):
         self.answer = answer
         self.textbox.replace("1.0", tk.END, answer.text)
         self.checkbox_var.set(answer.correct)
     
-    def save_changes(self):
-        self.answer.text = self.textbox.get("1.0", tk.END)[:-1]  # last char = \n
-        self.answer.correct = self.checkbox_var.get()
+    def get_state(self):
+        text = self.textbox.get("1.0", tk.END)[:-1]  # last char = \n
+        correct = self.checkbox_var.get()
+        return text, correct
 
 
 class AnswersFrame(ttk.Frame):
@@ -90,9 +90,6 @@ class AnswersFrame(ttk.Frame):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.frames: list[AnswerFrame] = []
-    
-    def get_answers(self):
-        return [f.answer for f in self.frames]
     
     def add_answer(self, answer: Answer = None):
         if answer is None:
@@ -121,10 +118,9 @@ class AnswersFrame(ttk.Frame):
     def n_answers(self):
         return len(self.frames)
     
-    def save_changes(self):
-        for frame in self.frames:
-            frame.save_changes()
-    
+    def get_state(self):
+        return [Answer(*f.get_state()) for f in self.frames]
+
 
 class QuestionCreator:
     
@@ -150,6 +146,7 @@ class QuestionCreator:
         self.questions: list[Question] = [QuestionCreator.create_new_question()]
         self.cqi: int = 0  # current question index
         self.file = file
+        self.changes = False  # whether there are changes not yet stored to a file
         
         # GUI elements and containers + setup
         self.window = tk.Tk()
@@ -157,11 +154,12 @@ class QuestionCreator:
         self.window.bind("<Control-s>", lambda event: self._save_file())
         self.window.bind("<Alt-Left>", lambda event: self._prev_question())
         self.window.bind("<Alt-Right>", lambda event: self._next_question())
+        self.window.protocol("WM_DELETE_WINDOW", self._on_close)
         self._init_setup()
         
         if file is not None:
             self._open_file(file)
-
+    
     def _init_setup(self):
         # buttons for opening/storing questions
         button_frame = ttk.Frame(self.window)
@@ -170,12 +168,12 @@ class QuestionCreator:
         button_prev.pack(side=tk.LEFT)
         button_next = ttk.Button(button_frame, text="Save as...", width=10, command=self._save_file)
         button_next.pack(side=tk.LEFT)
-    
+        
         # GUI elements for the question
         cq = self.questions[self.cqi]
         self.question_frame = QuestionFrame(self.window, cq)
         self.question_frame.id_label.config(text=f"Q {self.cqi + 1}/{len(self.questions)}:")
-    
+        
         # GUI elements for answers
         self.answers_frame = AnswersFrame(self.window)
         self.answers_frame.pack(fill=tk.BOTH, side=tk.TOP, expand=True)
@@ -184,7 +182,7 @@ class QuestionCreator:
         # button for adding new answer
         button_add_answer = ttk.Button(self.window, text="Add new answer", command=self.answers_frame.add_answer)
         button_add_answer.pack(side=tk.TOP)
-    
+        
         # buttons for showing previous/next question + adding/removing question
         button_frame = ttk.Frame(self.window)
         button_frame.pack(side=tk.TOP)
@@ -201,7 +199,7 @@ class QuestionCreator:
         cq = self.questions[self.cqi]
         
         # question GUI elements updates
-        self.question_frame.set_question(cq)
+        self.question_frame.set_state(cq)
         self.question_frame.id_label.config(text=f"Q {self.cqi + 1}/{len(self.questions)}:")
         
         # question answers GUI elements updates
@@ -219,17 +217,24 @@ class QuestionCreator:
         # setting answers
         assert len(cq.answers) == self.answers_frame.n_answers()
         for frame, answer in zip(self.answers_frame.frames, cq.answers):
-            frame.set_answer(answer)
+            frame.set_state(answer)
     
     def _save_changes(self, validate: bool = True):
-        self.question_frame.save_changes()
-        self.answers_frame.save_changes()
-        
         cq = self.questions[self.cqi]
-        cq.mode = self.question_frame.question.mode
-        cq.category = self.question_frame.question.category
-        cq.text = self.question_frame.question.text
-        cq.answers = self.answers_frame.get_answers()
+        
+        mode, category, text = self.question_frame.get_state()
+        answers = self.answers_frame.get_state()
+        
+        # if there are not already changes, detect any changes before overwriting the current question
+        if not self.changes:
+            # TODO: maybe make a copy, overwrite the copy and compare original with changed copy using ==
+            self.changes = cq.mode != mode or cq.category != category or cq.text != text or len(cq.answers) != len(
+                answers) or any([a1 != a2 for a1, a2 in zip(cq.answers, answers)])
+        
+        cq.mode = mode
+        cq.category = category
+        cq.text = text
+        cq.answers = answers
         
         if validate:
             if cq.mode == Question.MODE_SINGLE and len([a for a in cq.answers if a.correct]) != 1:
@@ -255,6 +260,7 @@ class QuestionCreator:
         question = QuestionCreator.create_new_question(self.questions[self.cqi])
         self.cqi += 1  # insert it after the current question, which is more logical
         self.questions.insert(self.cqi, question)
+        self.changes = True
         self._reload()
     
     def _remove_question(self):
@@ -269,9 +275,15 @@ class QuestionCreator:
                 # if the question at the end of the list was removed, reduce the
                 # current question index by 1 to avoid running out of index bounds
                 self.cqi -= 1
+            self.changes = True
             self._reload()
     
     def _open_file(self, file=None):
+        if self.changes:
+            yes = askyesno(title="Unsaved changes", message="There are unsaved changes in the current file. Do you "
+                                                            "want to open a new file anyway (changes are lost)?")
+            if not yes:
+                return
         if file is None:
             file = askopenfilename(filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")])
         if not file:
@@ -292,6 +304,7 @@ class QuestionCreator:
                 self.questions = questions
                 self.window.title(f"QuestionCreator - {file}")
                 self.cqi = 0
+                self.changes = False
                 self._reload()
     
     def _save_file(self):
@@ -310,6 +323,7 @@ class QuestionCreator:
             showerror(title="Error", message=f"Error when writing file:\n\n{e}")
         else:
             self.window.title(f"QuestionCreator - {file}")
+            self.changes = False
     
     def _prev_question(self):
         self._move_to_question(-1)
@@ -326,6 +340,17 @@ class QuestionCreator:
             return
         self.cqi = (self.cqi + step) % len(self.questions)
         self._reload()
+    
+    def _on_close(self):
+        save_successful = self._save_changes()
+        if not save_successful:
+            return
+        if self.changes:
+            yes = askyesno(title="Unsaved changes", message="There are unsaved changes in the current file. Do you "
+                                                            "want to quit anyway (changes are lost)?")
+            if not yes:
+                return
+        self.window.destroy()
     
     def start(self):
         self.window.mainloop()
