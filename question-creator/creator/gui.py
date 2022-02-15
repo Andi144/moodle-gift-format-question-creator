@@ -164,10 +164,10 @@ class QuestionCreator:
         # buttons for opening/storing questions
         button_frame = ttk.Frame(self.window)
         button_frame.pack(side=tk.TOP)
-        button_prev = ttk.Button(button_frame, text="Open...", width=10, command=self._open_file)
-        button_prev.pack(side=tk.LEFT)
-        button_next = ttk.Button(button_frame, text="Save as...", width=10, command=self._save_file)
-        button_next.pack(side=tk.LEFT)
+        button_open = ttk.Button(button_frame, text="Open...", width=10, command=self._open_file)
+        button_open.pack(side=tk.LEFT)
+        button_save = ttk.Button(button_frame, text="Save as...", width=10, command=self._save_file)
+        button_save.pack(side=tk.LEFT)
         
         # GUI elements for the question
         cq = self.questions[self.cqi]
