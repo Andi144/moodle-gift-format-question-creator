@@ -40,6 +40,11 @@ class Answer:
     def __str__(self):
         return f"[{'x' if self.correct else ' '}] {self.text}"
 
+    def __eq__(self, other):
+        if isinstance(other, Answer):
+            return self.text == other.text and self.correct == other.correct
+        return NotImplemented
+
 
 class Question:
     
@@ -160,6 +165,16 @@ class Question:
     def __str__(self):
         answers = "\n".join(str(a) for a in self.answers)
         return f"[{self.category}] [{self.mode}] Title: {self.title}\n\n{self.text}\n\n{answers}"
+    
+    def __eq__(self, other):
+        if isinstance(other, Question):
+            return self.category == other.category and \
+                   self.title == other.title and \
+                   self.text == other.text and \
+                   len(self.answers) == len(other.answers) and \
+                   all([a1 == a2 for a1, a2 in zip(self.answers, other.answers)]) and \
+                   self.mode == other.mode
+        return NotImplemented
 
 
 def escape_special_gift_chars(s: str):
