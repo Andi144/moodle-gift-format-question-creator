@@ -151,7 +151,7 @@ class QuestionCreator:
         # GUI elements and containers + setup
         self.window = tk.Tk()
         self.window.bind("<Control-o>", lambda event: self._open_file())
-        self.window.bind("<Control-s>", lambda event: self._save_file())
+        self.window.bind("<Control-s>", lambda event: self._save_file(self.file))
         self.window.bind("<Alt-Left>", lambda event: self._prev_question())
         self.window.bind("<Alt-Right>", lambda event: self._next_question())
         self.window.protocol("WM_DELETE_WINDOW", self._on_close)
@@ -166,8 +166,10 @@ class QuestionCreator:
         button_frame.pack(side=tk.TOP)
         button_open = ttk.Button(button_frame, text="Open...", width=10, command=self._open_file)
         button_open.pack(side=tk.LEFT)
-        button_save = ttk.Button(button_frame, text="Save as...", width=10, command=self._save_file)
+        button_save = ttk.Button(button_frame, text="Save", width=10, command=lambda: self._save_file(self.file))
         button_save.pack(side=tk.LEFT)
+        button_save_as = ttk.Button(button_frame, text="Save as...", width=10, command=self._save_file)
+        button_save_as.pack(side=tk.LEFT)
         
         # GUI elements for the question
         cq = self.questions[self.cqi]
@@ -307,14 +309,15 @@ class QuestionCreator:
                 self.changes = False
                 self._reload()
     
-    def _save_file(self):
+    def _save_file(self, file=None):
         if not self.questions:
             showerror(title="Error", message=f"No questions found.")
             return
         save_successful = self._save_changes()
         if not save_successful:
             return
-        file = asksaveasfilename(defaultextension="txt", filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")])
+        if file is None:
+            file = asksaveasfilename(defaultextension="txt", filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")])
         if not file:
             return
         self.file = file
