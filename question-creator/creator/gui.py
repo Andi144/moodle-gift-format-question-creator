@@ -317,6 +317,7 @@ class QuestionCreator:
         file = asksaveasfilename(defaultextension="txt", filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")])
         if not file:
             return
+        self.file = file
         try:
             inout.write_gift(file, self.questions)
         except ValueError as e:
