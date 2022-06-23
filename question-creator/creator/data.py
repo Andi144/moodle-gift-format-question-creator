@@ -39,7 +39,7 @@ class Answer:
     
     def __str__(self):
         return f"[{'x' if self.correct else ' '}] {self.text}"
-
+    
     def __eq__(self, other):
         if isinstance(other, Answer):
             return self.text == other.text and self.correct == other.correct
@@ -47,7 +47,6 @@ class Answer:
 
 
 class Question:
-    
     MODE_SINGLE = "single"
     MODE_MULTI = "multi"
     MODES = (MODE_SINGLE, MODE_MULTI)
