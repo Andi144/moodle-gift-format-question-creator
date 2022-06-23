@@ -1,23 +1,36 @@
 import re
+from typing import Optional
 
 
 class Category:
-    # expected format: "$CATEGORY: $course$/top/<category name>"
-    PATTERN = "$CATEGORY: $course$/top/"
+    COURSE_PATTERN = "$CATEGORY: $course$/top/"  # expected format: "$CATEGORY: $course$/top/<category name>"
+    MODULE_PATTERN = "$CATEGORY: $module$/top/"  # expected format: "$CATEGORY: $module$/top/<category name>"
+    PATTERNS = [COURSE_PATTERN, MODULE_PATTERN]
     
     def __init__(self, name: str):
         self.name = name
     
     @staticmethod
+    def extract_category_pattern(s: str) -> Optional[str]:
+        # just return the first matching predefined pattern
+        for pattern in Category.PATTERNS:
+            if pattern in s:
+                return pattern
+        return None
+    
+    @staticmethod
     def from_str(s: str) -> "Category":
-        parts = s.split(Category.PATTERN)
+        pattern = Category.extract_category_pattern(s)
+        if pattern is None:
+            raise ValueError(f"Category block must contain one of '{Category.PATTERNS}'.\n\n{s}")
+        parts = s.split(pattern)
         if len(parts) != 2:
-            raise ValueError(f"Category block must contain '{Category.PATTERN}' exactly once.\n\n{s}")
+            raise ValueError(f"Category block must contain '{pattern}' exactly once.\n\n{s}")
         name = parts[1].split("\n", maxsplit=1)[0]
         return Category(name.strip())
     
-    def to_gift_format(self):
-        return f"{Category.PATTERN}{self.name}"
+    def to_gift_format(self, category_pattern: str = COURSE_PATTERN):
+        return f"{category_pattern}{self.name}"
     
     def __str__(self):
         return self.name

@@ -14,7 +14,7 @@ def read_gift(file, encoding="utf8"):
         # skip empty blocks (e.g., due to empty lines at the end of the file)
         if not block:
             continue
-        if Category.PATTERN in block:
+        if Category.extract_category_pattern(block) is not None:
             category = Category.from_str(block)
         else:
             # assume it is a text block containing a question
